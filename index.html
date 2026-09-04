@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Từ Vựng — Học tiếng Anh mỗi ngày</title>
+<meta name="description" content="App học từ vựng tiếng Anh theo phương pháp Leitner">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6fed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Từ Vựng">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f2f4f8; --card:#ffffff; --card2:#f7f9fc; --text:#151821; --muted:#6b7280;
+  --line:#e3e7ee; --accent:#2f6fed; --accent-soft:#e8f0ff;
+  --ok:#12a150; --ok-soft:#e3f7ec; --bad:#e0344a; --bad-soft:#fdeaed;
+  --gold:#f59e0b; --radius:16px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e1016; --card:#171a22; --card2:#1e222c; --text:#e9ecf3; --muted:#98a1b3;
+    --line:#282d3a; --accent:#5b8dff; --accent-soft:#1b2740;
+    --ok:#2ecc71; --ok-soft:#12301f; --bad:#ff5c72; --bad-soft:#33151c;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  overscroll-behavior:none;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit}
+
+/* ---------- layout ---------- */
+#app{max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:calc(74px + var(--safe-b))}
+.screen{display:none;padding:14px 16px 20px}
+.screen.on{display:block}
+.topbar{
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  padding:10px 16px 8px;display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--line);max-width:520px;margin:0 auto;
+}
+.topbar h1{font-size:17px;margin:0;font-weight:700;flex:1}
+.pill{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700}
+.pill.flame{color:var(--gold)}
+.pill.star{color:var(--accent)}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
+
+/* ---------- progress ring ---------- */
+.ringwrap{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:104px;height:104px;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .val b{font-size:23px;line-height:1}
+.ring .val span{font-size:11px;color:var(--muted);margin-top:2px}
+.goalinfo{flex:1;min-width:0}
+.goalinfo .row{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
+.goalinfo .row span:last-child{font-weight:700}
+
+/* ---------- buttons ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  background:var(--accent);color:#fff;border-radius:14px;padding:15px;font-weight:700;font-size:16px}
+.btn:active{opacity:.85}
+.btn.ghost{background:var(--card);color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:11px;font-size:14px;border-radius:12px}
+.btn[disabled]{opacity:.45}
+.modegrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.modebtn{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 11px;text-align:left}
+.modebtn .ic{font-size:19px}
+.modebtn .nm{font-weight:700;font-size:13.5px;margin-top:5px}
+.modebtn .ds{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* ---------- study ---------- */
+#study{padding:0}
+.sbar{display:flex;align-items:center;gap:10px;padding:12px 16px}
+.sbar .track{flex:1;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.sbar .fill{height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.sbar .x{font-size:22px;color:var(--muted);line-height:1;padding:0 4px}
+.sbar .cnt{font-size:12.5px;color:var(--muted);font-weight:700;min-width:44px;text-align:right}
+.qwrap{padding:0 16px 16px}
+.qtag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:700;
+  padding:5px 11px;border-radius:99px;margin-bottom:14px}
+.qtag.newword{background:#fff4e0;color:#b45309}
+@media (prefers-color-scheme:dark){.qtag.newword{background:#3a2a10;color:#fbbf24}}
+.qbox{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 18px;text-align:center;margin-bottom:16px}
+.qword{font-size:32px;font-weight:800;letter-spacing:-.01em;line-height:1.2;word-break:break-word}
+.qword.vi{font-size:26px}
+.qpos{font-size:12.5px;color:var(--muted);margin-top:6px}
+.spk{display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:26px;margin:6px auto 0}
+.spk:active{transform:scale(.93)}
+.spk.big{width:96px;height:96px;font-size:42px;margin-top:4px}
+.opts{display:grid;gap:9px}
+.opt{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;text-align:left;
+  font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px;transition:.12s}
+.opt .k{font-size:12px;color:var(--muted);font-weight:700;min-width:16px}
+.opt:active{background:var(--card2)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.opt.dim{opacity:.45}
+.typewrap{display:flex;gap:8px}
+.typewrap input{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:14px;
+  padding:15px 16px;font-size:18px;color:var(--text);outline:none;min-width:0}
+.typewrap input:focus{border-color:var(--accent)}
+.typewrap input.ok{border-color:var(--ok);background:var(--ok-soft)}
+.typewrap input.bad{border-color:var(--bad);background:var(--bad-soft)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:9px;text-align:center}
+
+/* feedback sheet */
+#fb{position:fixed;left:0;right:0;bottom:0;z-index:60;max-width:520px;margin:0 auto;
+  background:var(--card);border-top:2px solid var(--line);border-radius:20px 20px 0 0;
+  padding:16px 16px calc(16px + var(--safe-b));transform:translateY(110%);transition:transform .22s ease-out}
+#fb.show{transform:translateY(0)}
+#fb.good{border-color:var(--ok)} #fb.wrongfb{border-color:var(--bad)}
+#fb .head{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;margin-bottom:8px}
+#fb.good .head{color:var(--ok)} #fb.wrongfb .head{color:var(--bad)}
+#fb .ans{font-size:15px;margin-bottom:6px}
+#fb .ans b{font-size:18px}
+#fb .ex{background:var(--card2);border-radius:11px;padding:11px;font-size:13.5px;margin:10px 0 12px;line-height:1.55}
+#fb .ex .en{font-weight:600}
+#fb .ex .vi{color:var(--muted);margin-top:3px}
+#fb .pts{margin-left:auto;font-size:14px}
+
+/* ---------- word list ---------- */
+.search{width:100%;background:var(--card);border:1px solid var(--line);border-radius:13px;
+  padding:12px 14px;color:var(--text);outline:none;margin-bottom:10px}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:9px;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;background:var(--card);border:1px solid var(--line);border-radius:99px;
+  padding:7px 13px;font-size:13px;font-weight:600;flex:0 0 auto}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wrow{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);
+  border-radius:13px;padding:11px 13px;margin-bottom:7px}
+.wrow .txt{flex:1;min-width:0}
+.wrow .en{font-weight:700;font-size:15.5px}
+.wrow .vi{font-size:13.5px;color:var(--muted);margin-top:1px}
+.wrow .sp{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto}
+.boxdot{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;flex:0 0 auto}
+.b0{background:var(--line);color:var(--muted)}
+.b1{background:#fee2e2;color:#b91c1c}.b2{background:#ffedd5;color:#c2410c}
+.b3{background:#fef3c7;color:#a16207}.b4{background:#dbeafe;color:#1d4ed8}
+.b5{background:#dcfce7;color:#15803d}
+@media (prefers-color-scheme:dark){
+  .b1{background:#3d1a1c;color:#fca5a5}.b2{background:#3d2510;color:#fdba74}
+  .b3{background:#3a3010;color:#fcd34d}.b4{background:#16264a;color:#93c5fd}
+  .b5{background:#12301f;color:#86efac}
+}
+
+/* ---------- stats ---------- */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px}
+.kpi b{display:block;font-size:24px;line-height:1.15}
+.kpi span{font-size:12px;color:var(--muted)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:96px;padding-top:6px}
+.bars .b{flex:1;background:var(--accent-soft);border-radius:3px 3px 0 0;min-height:3px;position:relative}
+.bars .b.has{background:var(--accent)}
+.bars .b.today{background:var(--gold)}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px}
+.boxbar{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:13px}
+.boxbar .lbl{width:64px;color:var(--muted);flex:0 0 auto}
+.boxbar .tr{flex:1;height:9px;background:var(--line);border-radius:99px;overflow:hidden}
+.boxbar .fl{height:100%;border-radius:99px}
+.boxbar .n{width:34px;text-align:right;font-weight:700;flex:0 0 auto}
+.hrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.hrow:last-child{border:0}
+.hrow .d{font-weight:700;width:72px;flex:0 0 auto}
+.hrow .m{flex:1;color:var(--muted);font-size:12.5px}
+.hrow .p{font-weight:700;color:var(--accent)}
+
+/* ---------- settings ---------- */
+.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border:0}
+.srow .lb{font-size:15px}
+.srow .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.srow input[type=number]{width:76px;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+  padding:9px;color:var(--text);text-align:center;outline:none}
+.sw{width:50px;height:30px;border-radius:99px;background:var(--line);position:relative;flex:0 0 auto;transition:.18s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.on{background:var(--accent)}.sw.on::after{transform:translateX(20px)}
+
+/* ---------- nav ---------- */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:520px;margin:0 auto;
+  background:var(--card);border-top:1px solid var(--line);display:flex;
+  padding:7px 0 calc(7px + var(--safe-b))}
+#nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;color:var(--muted);font-size:10.5px;font-weight:600}
+#nav button .i{font-size:20px;line-height:1.15}
+#nav button.on{color:var(--accent)}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:14px}
+.empty .big{font-size:44px;display:block;margin-bottom:10px}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translateX(-50%) translateY(14px);
+  background:#111;color:#fff;padding:10px 16px;border-radius:99px;font-size:13.5px;font-weight:600;
+  opacity:0;transition:.2s;z-index:80;pointer-events:none;max-width:88%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ---- bảng chi tiết về từ ---- */
+#fb .dcard{background:var(--card2);border-radius:14px;padding:14px;margin-bottom:12px}
+#fb .drow{display:flex;align-items:flex-start;gap:10px}
+#fb .dmain{flex:1;min-width:0}
+#fb .dmain b{font-size:23px;font-weight:800;line-height:1.2}
+#fb .ipa{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;color:var(--muted);margin-left:8px;white-space:nowrap}
+#fb .dpos{font-size:12px;color:var(--muted);margin-top:4px}
+#fb .dvi{font-size:19px;font-weight:700;color:var(--accent);margin:11px 0 0}
+#fb .dlabel{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+#fb .ex{background:var(--card);border-radius:10px;padding:11px 12px;font-size:13.5px;margin:0;line-height:1.55}
+#fb .dnote{background:var(--card);border-radius:10px;padding:11px 12px;font-size:13px;line-height:1.7}
+#fb .sp{width:42px;height:42px;border-radius:50%;background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto}
+#fb .head .pts{font-weight:700}
+.opt:disabled{cursor:default}
+.hint b{font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ================= HỌC ================= -->
+  <div class="topbar" id="bar-home">
+    <h1>Từ Vựng</h1>
+    <div class="pill flame">🔥 <span id="pStreak">0</span></div>
+    <div class="pill star">⭐ <span id="pScore">0</span></div>
+  </div>
+
+  <section class="screen on" id="sc-home">
+    <div class="card">
+      <div class="ringwrap">
+        <div class="ring">
+          <svg width="104" height="104">
+            <circle cx="52" cy="52" r="45" fill="none" stroke="var(--line)" stroke-width="10"/>
+            <circle id="ringFill" cx="52" cy="52" r="45" fill="none" stroke="var(--accent)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"
+                    style="transition:stroke-dashoffset .5s"/>
+          </svg>
+          <div class="val"><b id="ringPct">0%</b><span id="ringSub">0/17 từ mới</span></div>
+        </div>
+        <div class="goalinfo">
+          <div class="row"><span>🎯 Từ mới hôm nay</span><span id="gNew">0 / 17</span></div>
+          <div class="row"><span>🔁 Từ cũ đến hạn ôn</span><span id="gRev">0</span></div>
+          <div class="row"><span>Tổng lượt đã làm</span><span id="gDone">0</span></div>
+          <div class="row"><span>Độ chính xác</span><span id="gAcc">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="btnStart">📚 <span id="btnStartTxt">Bắt đầu học hôm nay</span></button>
+    <div style="height:14px"></div>
+
+    <div class="card">
+      <h3>Luyện thêm theo chế độ</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:-4px 0 11px">Học bao nhiêu tùy thích · không ảnh hưởng lịch ôn tập</p>
+      <div class="modegrid">
+        <button class="modebtn" data-mode="en2vi"><div class="ic">📖</div><div class="nm">Anh → Việt</div><div class="ds">Đọc chữ, chọn nghĩa</div></button>
+        <button class="modebtn" data-mode="vi2en"><div class="ic">📖</div><div class="nm">Việt → Anh</div><div class="ds">Đọc nghĩa, chọn từ</div></button>
+        <button class="modebtn" data-mode="listen"><div class="ic">🔊</div><div class="nm">Nghe → Việt</div><div class="ds">Nghe âm, chọn nghĩa</div></button>
+        <button class="modebtn" data-mode="type"><div class="ic">⌨️</div><div class="nm">Việt → Anh (gõ)</div><div class="ds">Tự gõ ra từ · điểm x2</div></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Tiến trình tổng</h3>
+      <div class="kpis">
+        <div class="kpi"><b id="kLearned">0</b><span>Từ đã học</span></div>
+        <div class="kpi"><b id="kMaster">0</b><span>Từ đã thuộc</span></div>
+        <div class="kpi"><b id="kTotal">0</b><span>Tổng số từ</span></div>
+        <div class="kpi"><b id="kDays">0</b><span>Ngày đã học</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HỌC (phiên) ================= -->
+  <section class="screen" id="sc-study">
+    <div class="sbar">
+      <button class="x" id="btnQuit">✕</button>
+      <div class="track"><div class="fill" id="sFill" style="width:0%"></div></div>
+      <div class="cnt" id="sCnt">0/0</div>
+    </div>
+    <div class="qwrap" id="qwrap"></div>
+  </section>
+
+  <!-- ================= TỪ VỰNG ================= -->
+  <div class="topbar" id="bar-words" style="display:none"><h1>Danh sách từ</h1><div class="pill" id="wCount">0</div></div>
+  <section class="screen" id="sc-words">
+    <input class="search" id="wSearch" placeholder="🔍 Tìm từ tiếng Anh hoặc nghĩa tiếng Việt…">
+    <div class="chips" id="wGroups"></div>
+    <div class="chips" id="wChips" style="display:none"></div>
+    <div id="wList"></div>
+  </section>
+
+  <!-- ================= THỐNG KÊ ================= -->
+  <div class="topbar" id="bar-stats" style="display:none"><h1>Thống kê & Lịch sử</h1></div>
+  <section class="screen" id="sc-stats">
+    <div class="kpis">
+      <div class="kpi"><b id="stStreak">0</b><span>🔥 Chuỗi ngày hiện tại</span></div>
+      <div class="kpi"><b id="stBest">0</b><span>🏆 Chuỗi dài nhất</span></div>
+      <div class="kpi"><b id="stScore">0</b><span>⭐ Tổng điểm</span></div>
+      <div class="kpi"><b id="stAcc">—</b><span>🎯 Độ chính xác</span></div>
+    </div>
+    <div class="card">
+      <h3>30 ngày gần nhất</h3>
+      <div class="bars" id="stBars"></div>
+      <div class="axis"><span id="axL">—</span><span>số lượt trả lời / ngày</span><span>Hôm nay</span></div>
+    </div>
+    <div class="card">
+      <h3>Mức độ ghi nhớ (hộp Leitner)</h3>
+      <div id="stBoxes"></div>
+      <p style="font-size:11.5px;color:var(--muted);margin:9px 0 0">Hộp 1 ôn mỗi ngày → Hộp 5 ôn 16 ngày/lần. Từ vào hộp 4-5 coi như đã thuộc.</p>
+    </div>
+    <div class="card">
+      <h3>Lịch sử học tập</h3>
+      <div id="stHist"></div>
+    </div>
+  </section>
+
+  <!-- ================= CÀI ĐẶT ================= -->
+  <div class="topbar" id="bar-set" style="display:none"><h1>Cài đặt</h1></div>
+  <section class="screen" id="sc-set">
+    <div class="card">
+      <h3>Nhịp học</h3>
+      <div class="srow">
+        <div><div class="lb">Từ mới mỗi ngày</div><div class="sub">Vòng tròn đầy 100% khi học xong đủ số từ mới này</div></div>
+        <input type="number" id="setNew" min="1" max="60">
+      </div>
+      <div class="srow">
+        <div><div class="lb">Giới hạn từ cũ ôn/ngày</div><div class="sub">Để <b>0</b> = không giới hạn, học bao nhiêu tùy thích</div></div>
+        <input type="number" id="setCap" min="0" max="500">
+      </div>
+    </div>
+    <div class="card">
+      <h3>Âm thanh</h3>
+      <div class="srow">
+        <div><div class="lb">Tự động đọc</div><div class="sub">Tự phát âm khi hiện từ tiếng Anh</div></div>
+        <div class="sw" id="setAuto"></div>
+      </div>
+      <div class="srow">
+        <div><div class="lb">Tốc độ đọc</div><div class="sub">0.5 chậm — 1.0 bình thường</div></div>
+        <input type="number" id="setRate" min="0.5" max="1.2" step="0.1">
+      </div>
+      <button class="btn ghost sm" id="btnTestVoice" style="margin-top:10px">🔊 Nghe thử giọng đọc</button>
+    </div>
+    <div class="card">
+      <h3>Dữ liệu</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:-4px 0 11px">Toàn bộ tiến trình lưu ngay trên máy bạn, không gửi đi đâu cả.</p>
+      <button class="btn ghost sm" id="btnExport" style="margin-bottom:8px">💾 Sao lưu ra tệp</button>
+      <button class="btn ghost sm" id="btnImport" style="margin-bottom:8px">📂 Khôi phục từ tệp</button>
+      <input type="file" id="fileIn" accept=".json" hidden>
+      <button class="btn ghost sm" id="btnReset" style="color:var(--bad)">🗑️ Xóa toàn bộ tiến trình</button>
+    </div>
+    <p style="text-align:center;font-size:11.5px;color:var(--muted)">Từ Vựng v1.0 · Leitner 5 hộp · NGSL + BSL</p>
+  </section>
+
+</div>
+
+<div id="fb"></div>
+<div class="toast" id="toast"></div>
+
+<nav id="nav">
+  <button data-tab="home" class="on"><span class="i">📚</span>Học</button>
+  <button data-tab="words"><span class="i">📖</span>Từ vựng</button>
+  <button data-tab="stats"><span class="i">📈</span>Thống kê</button>
+  <button data-tab="set"><span class="i">⚙️</span>Cài đặt</button>
+</nav>
+
+<script src="vocab.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
