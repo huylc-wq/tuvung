@@ -1,5 +1,5 @@
 /* Service worker: cho phép dùng offline hoàn toàn */
-const CACHE = 'tuvung-v2';
+const CACHE = 'tuvung-v3';
 const FILES = ['./', './index.html', './app.js', './vocab.js', './manifest.json',
                './icon-180.png', './icon-192.png', './icon-512.png'];
 

@@ -148,55 +148,45 @@ function buildDailyQueue(){
   return items;
 }
 
-/* chọn phiên tiếp theo: còn bài hôm nay thì học tiếp, xong rồi thì ôn thêm không giới hạn */
-function startNext(){
-  const p = dailyPlan();
-  const t = todayStr();
-  const unfinished = Object.keys(S.cards).filter(en => S.cards[en].i === t && S.cards[en].b < 2).length;
-  if(p.fresh.length + p.due.length + unfinished > 0) startSession(null);
-  else startSession('mix');
-}
-
-function buildPracticeQueue(mode){
-  const known = Object.keys(S.cards).filter(k => BY_EN[k]);
-  if(mode === 'mix') return [];                    // chế độ thích ứng tự sinh câu, không dựng sẵn
-  if(!known.length) return [];
-  return shuffle(known).slice(0, 20).map(en => ({ en, kind:'quiz', mode, practice:true }));
-}
-
 /* ===== CHẾ ĐỘ ÔN THÍCH ỨNG (không giới hạn) =====
    Đúng liên tiếp  → bơm thêm từ mới, chuỗi càng dài bơm càng nhiều
    Sai một câu     → chuỗi về 0, lùi lại làm từ cũ, và ôn lại chính từ vừa sai   */
 let adapt = null;
-const NEW_CHANCE = st => st >= 9 ? 0.65 : st >= 7 ? 0.5 : st >= 5 ? 0.35 : st >= 3 ? 0.2 : 0;
+const NEW_CHANCE = st => st >= 9 ? 0.85 : st >= 6 ? 0.78 : st >= 3 ? 0.70 : 0.60;
 
 function nextAdaptiveItem(){
-  // vừa sai → chờ vài câu từ cũ rồi ôn lại đúng từ đó
-  if(adapt.cool > 0) adapt.cool--;
+  const fresh = newList(1);
+  const giveNew = () => { adapt.newAdded++; adapt.oldRun = 0;
+    return { en: fresh[0], kind:'quiz', mode:'en2vi', fresh:true, bonusNew:true }; };
+  const giveOld = (en, again) => { adapt.oldRun++;
+    return { en, kind:'quiz', mode: modeForBox(S.cards[en].b), practice:true, again:!!again }; };
+
+  // BẢO ĐẢM CỨNG: không bao giờ quá 3 câu từ cũ liên tiếp — từ mới luôn ra đều
+  if(fresh.length && adapt.oldRun >= 3) return giveNew();
+
+  // vừa sai → 2 câu từ cũ cho nguội, rồi ôn lại đúng từ vừa sai
+  let cooling = false;
+  if(adapt.cool > 0){ adapt.cool--; cooling = true; }
   else if(adapt.retry.length){
     const en = adapt.retry.shift();
-    if(S.cards[en]) return { en, kind:'quiz', mode: modeForBox(S.cards[en].b), practice:true, again:true };
+    if(S.cards[en]) return giveOld(en, true);
   }
-  // đúng liên tiếp → thưởng thêm từ mới
-  const fresh = newList(1);
-  if(fresh.length && Math.random() < NEW_CHANCE(adapt.streak)){
-    adapt.newAdded++;
-    return { en: fresh[0], kind:'quiz', mode:'en2vi', fresh:true, bonusNew:true };
-  }
-  // mặc định: bốc từ cũ, ưu tiên từ còn yếu (hộp thấp), tránh lặp lại câu vừa hỏi
-  const known = Object.keys(S.cards).filter(k => BY_EN[k] && !adapt.recent.includes(k));
-  if(!known.length){
-    if(fresh.length){ adapt.newAdded++; return { en: fresh[0], kind:'quiz', mode:'en2vi', fresh:true }; }
-    const all = Object.keys(S.cards).filter(k => BY_EN[k]);
-    if(!all.length) return null;
-    const en = all[Math.floor(Math.random() * all.length)];
-    return { en, kind:'quiz', mode: modeForBox(S.cards[en].b), practice:true };
-  }
-  known.sort((a, b) => S.cards[a].b - S.cards[b].b);
-  const pool = known.slice(0, Math.max(6, Math.ceil(known.length * 0.4)));
-  const en = pool[Math.floor(Math.random() * pool.length)];
-  return { en, kind:'quiz', mode: modeForBox(S.cards[en].b), practice:true };
+
+  // mặc định ưu tiên TỪ MỚI — chuỗi đúng càng dài, tỉ lệ càng cao
+  if(!cooling && fresh.length && Math.random() < NEW_CHANCE(adapt.streak)) return giveNew();
+
+  // trộn từ cũ: bốc CÓ TRỌNG SỐ trên toàn bộ từ đã học (hộp thấp nặng hơn),
+  // không nhốt trong nhóm vài từ yếu nhất → hết cảnh lặp đi lặp lại
+  let pool = Object.keys(S.cards).filter(k => BY_EN[k] && !adapt.recent.includes(k));
+  if(!pool.length) pool = Object.keys(S.cards).filter(k => BY_EN[k]);
+  if(!pool.length) return fresh.length ? giveNew() : null;
+  let total = 0;
+  const weights = pool.map(k => { const w = 6 - S.cards[k].b; total += w; return w; });
+  let r = Math.random() * total, idx = pool.length - 1;
+  for(let i = 0; i < pool.length; i++){ r -= weights[i]; if(r <= 0){ idx = i; break; } }
+  return giveOld(pool[idx]);
 }
+
 
 /* chọn phiên tiếp theo: còn bài hôm nay thì học tiếp, xong rồi thì ôn thêm không giới hạn */
 function startNext(){
@@ -208,13 +198,9 @@ function startNext(){
 }
 
 function buildPracticeQueue(mode){
+  if(mode === 'mix') return [];                     // chế độ thích ứng tự sinh câu, không dựng sẵn
   const known = Object.keys(S.cards).filter(k => BY_EN[k]);
   if(!known.length) return [];
-  if(mode === 'mix'){                               // ôn thêm: ưu tiên từ còn yếu
-    known.sort((a,b) => S.cards[a].b - S.cards[b].b);
-    const pick = known.slice(0, Math.min(25, known.length));
-    return shuffle(pick).map(en => ({ en, kind:'quiz', mode: modeForBox(S.cards[en].b), practice:true }));
-  }
   return shuffle(known).slice(0, 20).map(en => ({ en, kind:'quiz', mode, practice:true }));
 }
 
@@ -228,7 +214,7 @@ function startSession(mode){
   adapt = null;
   if(mode === 'mix'){
     if(!Object.keys(S.cards).length){ toast('Bạn cần học vài từ mới trước đã 🙂'); return; }
-    adapt = { streak:0, cool:0, retry:[], recent:[], newAdded:0 };
+    adapt = { streak:0, cool:0, retry:[], recent:[], newAdded:0, oldRun:0 };
     Q = [];
     const first = nextAdaptiveItem();
     if(!first){ toast('Chưa có từ nào để ôn 🙂'); return; }
@@ -257,7 +243,7 @@ function renderQ(){
   const it = Q[qi];
   it.tries = 0;                                   // đếm số lần trả lời sai của câu này
   if(adapt){
-    adapt.recent.unshift(it.en); if(adapt.recent.length > 6) adapt.recent.pop();
+    adapt.recent.unshift(it.en); if(adapt.recent.length > 10) adapt.recent.pop();
     document.getElementById('sFill').style.width = Math.min(100, adapt.streak / 9 * 100) + '%';
     document.getElementById('sCnt').textContent = '🔥 ' + adapt.streak;
   }else{
@@ -436,7 +422,7 @@ function grade(firstTry, w, it){
   }
   if(adapt){
     if(firstTry) adapt.streak++;
-    else { adapt.streak = 0; adapt.cool = 3; if(!adapt.retry.includes(en)) adapt.retry.push(en); }
+    else { adapt.streak = 0; adapt.cool = 2; if(!adapt.retry.includes(en)) adapt.retry.push(en); }
   }
 
   d.ans++; firstTry ? d.ok++ : d.no++; d.pts += pts;
